@@ -18,7 +18,9 @@ module.exports = function(config) {
       'node_modules/jasmine-jquery/vendor/jquery/jquery.js',
       'node_modules/jasmine-jquery/lib/jasmine-jquery.js',
       'src/**/*.js',
-      'spec/unit/**/*.coffee'
+      'spec/unit/**/*_spec.coffee',
+      'spec/integration/support/**/*.coffee',
+      'spec/integration/**/*_spec.coffee'
     ],
 
 
