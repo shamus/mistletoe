@@ -34,9 +34,6 @@ describe 'Mistletoe.Bindings', ->
         expect(@collected).toContain(@fooBinding)
         expect(@collected).toContain(@barBinding)
 
-      it '', ->
-        expect(@bindings.any('example')).toBe(true)
-
     describe 'when there are no bindings under the path', ->
       beforeEach ->
         @collected = @bindings.under 'example'
@@ -44,5 +41,44 @@ describe 'Mistletoe.Bindings', ->
       it 'returns an empty array', ->
         expect(@collected.length).toBe(0)
 
-      it '', ->
-        expect(@bindings.any('example')).toBe(false)
+  describe 'paths', ->
+    beforeEach ->
+      @bindings.add 'an', jasmine.createSpy()
+      @bindings.add 'an.example', jasmine.createSpy()
+      @bindings.add 'another.example', jasmine.createSpy()
+
+    describe 'by default', ->
+      beforeEach ->
+        @paths = @bindings.paths()
+
+      it 'returns every registered path', ->
+        expect(@paths.length).toBe(3)
+        expect(@paths).toContain('an')
+        expect(@paths).toContain('an.example')
+        expect(@paths).toContain('another.example')
+
+    describe 'with a filter', ->
+      beforeEach ->
+        @paths = @bindings.paths(filter: 'an')
+
+      it 'includes paths deeper than the supplied filter', ->
+        expect(@paths.length).toBe(1)
+        expect(@paths).toContain('an.example')
+
+      it 'excludes paths that only partially match the filter', ->
+        expect(@paths).not.toContain('another.example')
+
+  describe 'propertiesBoundBy', ->
+    beforeEach ->
+      @bindings.add 'an', jasmine.createSpy()
+      @bindings.add 'an.example', jasmine.createSpy()
+      @bindings.add 'an.example.1', jasmine.createSpy()
+
+    describe 'by default', ->
+      beforeEach ->
+        @properties = @bindings.propertiesBoundBy('an')
+
+      it 'returns a list of properties underneath the path', ->
+        expect(@properties.length).toBe(1)
+        expect(@properties).toContain('example')
+
