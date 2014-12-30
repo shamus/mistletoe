@@ -56,11 +56,11 @@
     extractors.push(extractor);
   }
 
-  function extract(element, bindings) {
+  function extract(element, bindings, onlyChildren) {
     var processChildren = true;
     bindings = bindings || new Mistletoe.Bindings();
 
-    if (element.attributes) {
+    if (!onlyChildren && element.attributes) {
       Array.prototype.slice.call(element.attributes, 0).forEach(function(attribute) {
         bindToMustaches(TextContainer.attribute(attribute), bindings);
         processChildren = extractors.reduce(function(processChildren, extractor) {
