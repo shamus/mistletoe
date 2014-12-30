@@ -50,6 +50,12 @@
         return;
       }
 
+      var observesArray = bindings.for(path).some(function(binding) { return binding.observes === Array });
+      if (observesArray) {
+        Array.observe(newObject, arrayObserver);
+        announceChange({type: 'splice', object: newObject, addedCount: newObject.length, index: 0, removed: [] }, bindings.for(path));
+      }
+
       Object.observe(newObject, objectObserver);
       paths.set(newObject, path);
       announceChange(change, bindings.for(path));
@@ -66,8 +72,18 @@
         });
 
         Object.unobserve(newObject, objectObserver);
+        if (observesArray) {
+          Array.unobserve(newObject, arrayObserver);
+        }
         paths.delete(newObject);
       }
+    }
+
+    function arrayObserver(changes) {
+      changes.forEach(function(change) {
+        var path = paths.get(change.object);
+        announceChange(change, bindings.for(path));
+      });
     }
 
     function objectObserver(changes) {
