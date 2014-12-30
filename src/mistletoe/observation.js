@@ -18,39 +18,28 @@
   function begin(bindings, context) {
     var paths = new WeakMap(), unobservers = {};
 
-    function unobserve(path) {
+    function unobserve(change, path) {
       Object.keys(unobservers).forEach(function(property) {
-        if (property.indexOf(path) !== 0) {
+        if (property.indexOf(path) !== 0 && property.charAt(path.length) !== '.') {
           return;
         }
-        unobservers[property]();
+        unobservers[property](change);
       });
     }
 
     function observe(change, path) {
-      if (!change.object && !path) {
-        throw new Error();
-      }
-
-      if (!path) {
-        bindings.propertiesBoundBy().forEach(function(property) {
-          observe({ type: change.type, object: change.object, name: property }, property);
-        });
-
-        Object.observe(change.object, objectObserver);
-        return;
-      }
-
       var newObject = change.object[change.name];
+      var observesArray = bindings.for(path).some(function(binding) { return binding.observes === Array });
+
       if (!newObject || typeof newObject !== 'object') {
         announceChange(change, bindings.under(path));
-        unobservers[path] = function unobserver() {
-          announceChange({ type: 'delete', object: change.object, name: change.name }, bindings.under(path))
+        unobservers[path] = function unobserver(change) {
+          announceChange(change, bindings.under(path))
         };
+
         return;
       }
 
-      var observesArray = bindings.for(path).some(function(binding) { return binding.observes === Array });
       if (observesArray) {
         Array.observe(newObject, arrayObserver);
         announceChange({type: 'splice', object: newObject, addedCount: newObject.length, index: 0, removed: [] }, bindings.for(path));
@@ -64,13 +53,8 @@
         observe({ type: change.type, object: newObject, name: property }, assemblePath(path, property));
       });
 
-      unobservers[path] = function unobserver() {
-        announceChange({ type: 'delete', object: change.object, name: change.name }, bindings.for(path));
-        Object.keys(newObject).forEach(function(property) {
-          var propertyPath = assemblePath(path, property);
-          announceChange({ type: 'delete', object: newObject, name: property }, bindings.for(propertyPath));
-        });
-
+      unobservers[path] = function unobserver(change) {
+        announceChange(change, bindings.under(path));
         Object.unobserve(newObject, objectObserver);
         if (observesArray) {
           Array.unobserve(newObject, arrayObserver);
@@ -95,20 +79,24 @@
             observe(change, path);
             break;
           case 'update':
-            unobserve(path);
+            unobserve(change, path);
             observe(change, path);
             break;
           case 'delete':
-            unobserve(path);
+            unobserve(change, path);
         }
       });
     }
 
     bindings.context = context;
-    observe({ type: 'add', object: context });
+    bindings.propertiesBoundBy().forEach(function(property) {
+      observe({ type: 'add', object: context, name: property }, property);
+    });
+
+    Object.observe(context, objectObserver);
 
     return function() {
-      unobserve('');
+      unobserve({ type: 'delete', object: context }, '');
     }
   }
 
